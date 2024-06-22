@@ -24,14 +24,14 @@ app.layout = dbc.Container([
             html.Label('Number of Colors:'),
             dcc.Slider(
                 id='num-clusters',
-                min=2, max=25, step=1, value=5,
-                marks={i: str(i) for i in range(2, 26)}
+                min=2, max=20, step=1, value=5,
+                marks={i: str(i) for i in range(2, 21)}
             ),
             html.Label('Pixelation Level:'),
             dcc.Slider(
                 id='pixelation-level',
-                min=1, max=25, step=1, value=1,
-                marks={i: str(i) for i in range(1, 26)}
+                min=1, max=20, step=1, value=1,
+                marks={i: str(i) for i in range(1, 21)}
             ),
         ], width=6),  # Settings in the top-left corner
 
