@@ -1,0 +1,22 @@
+#react-entry-point{
+    background-color: #232323;
+    color: white;
+    height: 100vh;
+}
+
+img {
+    border: 1px solid #9b9b9b;
+}
+
+/* Example styles.css */
+body {
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    padding: 20px;
+}
+
+.centered {
+    text-align: center;
+}

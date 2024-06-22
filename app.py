@@ -9,11 +9,11 @@ import base64
 import io
 
 # Initialize the Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, '/assets/styles.css'])
 
 # App layout
 app.layout = dbc.Container([
-    html.H1("Image Color Clustering", className="text-center"),  # Title centered
+    html.H1("Image Color Clustering", className="text-center"),
     dbc.Row([
         dbc.Col([
             dcc.Upload(
