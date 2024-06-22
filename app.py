@@ -42,12 +42,12 @@ app.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([
-            html.H3("Chosen Colors"),
+            html.Div(id='color-section'),
             html.Div(id='color-list', style={'display': 'flex', 'flex-wrap': 'wrap'}),
         ], width=6),  # Chosen colors on the left
 
         dbc.Col([
-            html.H3("Clustered Image"),
+            html.Div(id='cluster-section'),
             html.Div(id='output-image-cluster'),
         ], width=6),  # Clustered image on the right
     ], style={'margin-top': '20px'})  # Row for color list and output image
@@ -107,6 +107,19 @@ def update_output(contents):
 
 
 @app.callback(
+    Output('color-section', 'children'),
+    [Input('upload-image', 'contents')]
+)
+def update_color_section(contents):
+    if contents is not None:
+        return html.Div([
+            html.H3("Chosen Colors"),
+            html.Div(id='color-list', style={'display': 'flex', 'flex-wrap': 'wrap'})
+        ])
+    return None
+
+
+@app.callback(
     Output('color-list', 'children'),
     [Input('upload-image', 'contents'), Input('num-clusters', 'value'), Input('pixelation-level', 'value')]
 )
@@ -139,6 +152,19 @@ def update_color_list(contents, num_clusters, pixelation_level):
 
         return color_list_items
 
+    return None
+
+
+@app.callback(
+    Output('cluster-section', 'children'),
+    [Input('upload-image', 'contents')]
+)
+def update_cluster_section(contents):
+    if contents is not None:
+        return html.Div([
+            html.H3("Clustered Image"),
+            html.Div(id='output-image-cluster')
+        ])
     return None
 
 
