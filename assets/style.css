@@ -32,3 +32,17 @@ body {
     margin: 10px;
     width: 180px;
 }
+
+#upload-image{
+    text-align: center;
+    margin: 100px 0px 50px 0px;
+    width: 200px;
+    padding:10px;
+    background-color: #750db6;
+    border-radius: 7px;
+}
+
+#upload-image:hover{
+    cursor: pointer;
+    background-color: #9308c1;
+}
