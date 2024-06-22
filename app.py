@@ -13,9 +13,9 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # App layout
 app.layout = dbc.Container([
+    html.H1("Image Color Clustering", className="text-center"),  # Title centered
     dbc.Row([
         dbc.Col([
-            html.H1("Image Color Clustering"),
             dcc.Upload(
                 id='upload-image',
                 children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
@@ -32,60 +32,64 @@ app.layout = dbc.Container([
                 min=2, max=20, step=1, value=5,
                 marks={i: str(i) for i in range(2, 21)}
             ),
-            dbc.Button("Cluster Image", id="cluster-button", color="primary", style={"margin-top": "10px"})
-        ], width=4),
+        ], width=6, align='center'),  # Upload and controls centered in a 6-column width
+    ], justify='center', style={'margin-top': '20px'}),  # Row centered with margin top
+
+    dbc.Row([
         dbc.Col([
             html.H3("Original Image"),
-            html.Img(id='original-image', style={'width': '100%'}),
+            html.Div(id='output-image-upload'),
+        ], width=6, align='center'),  # Original Image centered in a 6-column width
+        dbc.Col([
             html.H3("Clustered Image"),
-            html.Img(id='clustered-image', style={'width': '100%'})
-        ], width=8)
-    ])
+            html.Div(id='output-image-cluster'),
+        ], width=6, align='center'),  # Clustered Image centered in a 6-column width
+    ], justify='center', style={'margin-top': '20px'})  # Row centered with margin top
 ])
 
-def parse_contents(contents, num_clusters):
-    # Decode the uploaded image
-    content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    image = Image.open(io.BytesIO(decoded))
-
-    # Convert image to numpy array
-    img_array = np.array(image)
-    h, w, _ = img_array.shape
-    img_array = img_array.reshape((h * w, 3))
-
-    # Apply K-means clustering
-    kmeans = KMeans(n_clusters=num_clusters)
-    kmeans.fit(img_array)
-    clustered = kmeans.cluster_centers_[kmeans.labels_]
-
-    # Convert back to image format
-    clustered_img = clustered.reshape((h, w, 3)).astype('uint8')
-    clustered_image_pil = Image.fromarray(clustered_img)
-
-    # Encode the original and clustered images to base64
-    buffered_original = io.BytesIO()
-    image.save(buffered_original, format="PNG")
-    original_base64 = base64.b64encode(buffered_original.getvalue()).decode('utf-8')
-
-    buffered_clustered = io.BytesIO()
-    clustered_image_pil.save(buffered_clustered, format="PNG")
-    clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
-
-    return original_base64, clustered_base64
+@app.callback(
+    Output('output-image-upload', 'children'),
+    [Input('upload-image', 'contents')]
+)
+def update_output(contents):
+    if contents is not None:
+        # Decode the uploaded image
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        image = Image.open(io.BytesIO(decoded))
+        return html.Img(src=contents, style={'width': '100%'})
 
 @app.callback(
-    [Output('original-image', 'src'), Output('clustered-image', 'src')],
-    [Input('cluster-button', 'n_clicks')],
-    [State('upload-image', 'contents'), State('num-clusters', 'value')]
+    Output('output-image-cluster', 'children'),
+    [Input('upload-image', 'contents'), Input('num-clusters', 'value')]
 )
-def update_output(n_clicks, contents, num_clusters):
+def update_clustered_image(contents, num_clusters):
     if contents is not None:
-        original_base64, clustered_base64 = parse_contents(contents, num_clusters)
-        original_src = f'data:image/png;base64,{original_base64}'
-        clustered_src = f'data:image/png;base64,{clustered_base64}'
-        return original_src, clustered_src
-    return None, None
+        # Decode the uploaded image
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        image = Image.open(io.BytesIO(decoded))
+
+        # Convert image to numpy array
+        img_array = np.array(image)
+        h, w, _ = img_array.shape
+        img_array = img_array.reshape((h * w, 3))
+
+        # Apply K-means clustering
+        kmeans = KMeans(n_clusters=num_clusters)
+        kmeans.fit(img_array)
+        clustered = kmeans.cluster_centers_[kmeans.labels_]
+
+        # Convert back to image format
+        clustered_img = clustered.reshape((h, w, 3)).astype('uint8')
+        clustered_image_pil = Image.fromarray(clustered_img)
+
+        # Encode the clustered image to base64
+        buffered_clustered = io.BytesIO()
+        clustered_image_pil.save(buffered_clustered, format="PNG")
+        clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
+
+        return html.Img(src=f'data:image/png;base64,{clustered_base64}', style={'width': '100%'})
 
 if __name__ == '__main__':
     app.run_server(debug=True)
