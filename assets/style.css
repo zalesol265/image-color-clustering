@@ -25,3 +25,10 @@ body {
 .color-box{
     border: 1px solid grey;
 }
+
+.color-card {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    width: 180px;
+}

@@ -48,7 +48,7 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.H3("Chosen Colors"),
-            html.Div(id='color-list'),
+            html.Div(id='color-list', style={'display': 'flex', 'flex-wrap': 'wrap'}),
         ], width=6),  # Chosen colors on the left
 
         dbc.Col([
@@ -132,14 +132,17 @@ def update_color_list(contents, num_clusters, pixelation_level):
         color_list_items = []
         for color in unique_colors:
             # Convert color values from float64 to int and then to string
-            rgb_values = f"RGB: {tuple(map(int, color))}"
+            rgb_values = f"rgb{tuple(map(int, color))}"
             # Create a div with the color square and RGB values
-            color_square = html.Div(style={'width': '30px', 'height': '30px', 'background-color': f'rgb({int(color[0])}, {int(color[1])}, {int(color[2])})'})
-            color_list_items.append(html.Div([color_square, rgb_values], style={'display': 'inline-block', 'margin': '10px'}))
+            color_square = html.Div(style={
+                'width': '30px', 'height': '30px', 'background-color': f'rgb({int(color[0])}, {int(color[1])}, {int(color[2])})'
+            })
+            color_list_items.append(html.Div([
+                color_square,
+                html.Span(rgb_values, style={'margin-left': '10px'})
+            ], className='color-card'))
 
-        color_list_html = html.Div(color_list_items)
-
-        return color_list_html
+        return color_list_items
 
     return None
 
