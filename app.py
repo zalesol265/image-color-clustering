@@ -1,8 +1,8 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-from dash.dependencies import Input, Output, State
-from PIL import Image, ImageFilter
+from dash.dependencies import Input, Output
+from PIL import Image
 import numpy as np
 from sklearn.cluster import KMeans
 import base64
@@ -16,6 +16,16 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.H1("Image Color Clustering"),
+            dcc.Upload(
+                id='upload-image',
+                children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
+                style={
+                    'width': '100%', 'height': '60px', 'lineHeight': '60px',
+                    'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
+                    'textAlign': 'center', 'margin': '10px'
+                },
+                multiple=False
+            ),
             html.Label('Number of Colors:'),
             dcc.Slider(
                 id='num-clusters',
@@ -31,16 +41,6 @@ app.layout = dbc.Container([
         ], width=6),  # Settings in the top-left corner
 
         dbc.Col([
-            dcc.Upload(
-                id='upload-image',
-                children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
-                style={
-                    'width': '100%', 'height': '60px', 'lineHeight': '60px',
-                    'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
-                    'textAlign': 'center', 'margin': '10px'
-                },
-                multiple=False
-            ),
             html.Div(id='output-image-upload'),
         ], width=6),  # Upload component and input image in the top-right corner
     ], style={'margin-top': '20px'}),
