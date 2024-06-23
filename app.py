@@ -1,7 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from PIL import Image
 import numpy as np
 from sklearn.cluster import KMeans
@@ -43,12 +43,10 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Div(id='color-section'),
-            html.Div(id='color-list', style={'display': 'flex', 'flex-wrap': 'wrap'}),
         ], width=6),  # Chosen colors on the left
 
         dbc.Col([
             html.Div(id='cluster-section'),
-            html.Div(id='output-image-cluster'),
         ], width=6),  # Clustered image on the right
     ], style={'margin-top': '20px'})  # Row for color list and output image
 ])
@@ -82,49 +80,31 @@ def calculate_colors(image, num_clusters):
     clustered_image_pil = Image.fromarray(clustered_img)
 
     # Get unique colors and their counts
-    unique_colors, color_counts = np.unique(clustered, axis=0, return_counts=True)
+    unique_colors, _ = np.unique(clustered, axis=0, return_counts=True)
 
-    return clustered_image_pil, unique_colors, color_counts
+    return clustered_image_pil, unique_colors
 
 
 @app.callback(
     Output('output-image-upload', 'children'),
-    [Input('upload-image', 'contents')]
+    Input('upload-image', 'contents')
 )
-def update_output(contents):
-    if contents is not None:
-        # Decode the uploaded image
-        content_type, content_string = contents.split(',')
-        decoded = base64.b64decode(content_string)
-        image = Image.open(io.BytesIO(decoded))
-
-        # Encode the uploaded image to base64
-        image_base64 = base64.b64encode(decoded).decode('utf-8')
-
-        return html.Img(src=f'data:image/png;base64,{image_base64}', style={'width': '100%'})
-
+def display_uploaded_image(contents):
+    if contents:
+        uploaded_image = html.Img(src=contents, style={'width': '100%'})
+        return uploaded_image
     return None
 
 
 @app.callback(
-    Output('color-section', 'children'),
-    [Input('upload-image', 'contents')]
+    [Output('color-section', 'children'),
+     Output('cluster-section', 'children')],
+    [Input('num-clusters', 'value'),
+     Input('pixelation-level', 'value'),
+     Input('upload-image', 'contents')]
 )
-def update_color_section(contents):
-    if contents is not None:
-        return html.Div([
-            html.H3("Chosen Colors"),
-            html.Div(id='color-list', style={'display': 'flex', 'flex-wrap': 'wrap'})
-        ])
-    return None
-
-
-@app.callback(
-    Output('color-list', 'children'),
-    [Input('upload-image', 'contents'), Input('num-clusters', 'value'), Input('pixelation-level', 'value')]
-)
-def update_color_list(contents, num_clusters, pixelation_level):
-    if contents is not None:
+def update_clustering(num_clusters, pixelation_level, contents):
+    if contents:
         # Decode the uploaded image
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)
@@ -134,7 +114,13 @@ def update_color_list(contents, num_clusters, pixelation_level):
         pixelated_image = pixelate_image(image, pixelation_level)
 
         # Calculate clustered image and color information
-        _, unique_colors, _ = calculate_colors(pixelated_image, num_clusters)
+        clustered_image, unique_colors = calculate_colors(pixelated_image, num_clusters)
+
+        # Encode the clustered image to base64
+        buffered_clustered = io.BytesIO()
+        clustered_image.save(buffered_clustered, format="PNG")
+        clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
+        clustered_image_html = html.Img(src=f'data:image/png;base64,{clustered_base64}', style={'width': '100%'})
 
         # Prepare HTML for color list
         color_list_items = []
@@ -150,52 +136,19 @@ def update_color_list(contents, num_clusters, pixelation_level):
                 html.Span(rgb_values, style={'margin-left': '10px'})
             ], className='color-card'))
 
-        return color_list_items
-
-    return None
-
-
-@app.callback(
-    Output('cluster-section', 'children'),
-    [Input('upload-image', 'contents')]
-)
-def update_cluster_section(contents):
-    if contents is not None:
-        return html.Div([
-            html.H3("Clustered Image"),
-            html.Div(id='output-image-cluster')
+        color_section = html.Div([
+            html.H3("Chosen Colors"),
+            html.Div(color_list_items, style={'display': 'flex', 'flex-wrap': 'wrap'})
         ])
-    return None
 
+        cluster_section = html.Div([
+            html.H3("Clustered Image"),
+            clustered_image_html
+        ])
 
-@app.callback(
-    Output('output-image-cluster', 'children'),
-    [Input('upload-image', 'contents'), Input('num-clusters', 'value'), Input('pixelation-level', 'value')]
-)
-def update_clustered_image(contents, num_clusters, pixelation_level):
-    if contents is not None:
-        # Decode the uploaded image
-        content_type, content_string = contents.split(',')
-        decoded = base64.b64decode(content_string)
-        image = Image.open(io.BytesIO(decoded))
+        return color_section, cluster_section
 
-        # Pixelate the image
-        pixelated_image = pixelate_image(image, pixelation_level)
-
-        # Calculate clustered image
-        clustered_image, _, _ = calculate_colors(pixelated_image, num_clusters)
-
-        # Encode the clustered image to base64
-        buffered_clustered = io.BytesIO()
-        clustered_image.save(buffered_clustered, format="PNG")
-        clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
-
-        # Prepare HTML for clustered image
-        clustered_image_html = html.Img(src=f'data:image/png;base64,{clustered_base64}', style={'width': '100%'})
-
-        return clustered_image_html
-
-    return None
+    return None, None
 
 
 if __name__ == '__main__':
