@@ -18,12 +18,7 @@ app.layout = dbc.Container([
             html.H1("Image Color Clustering"),
             dcc.Upload(
                 id='upload-image',
-                children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
-                style={
-                    'width': '100%', 'height': '60px', 'lineHeight': '60px',
-                    'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
-                    'textAlign': 'center', 'margin': '10px'
-                },
+                children=html.Div(['Upload image']),
                 multiple=False
             ),
             html.Label('Number of Colors:'),
@@ -32,23 +27,44 @@ app.layout = dbc.Container([
                 min=2, max=20, step=1, value=5,
                 marks={i: str(i) for i in range(2, 21)}
             ),
-            dbc.Button("Cluster Image", id="cluster-button", color="primary", style={"margin-top": "10px"})
-        ], width=4),
+            html.Label('Pixelation Level:'),
+            dcc.Slider(
+                id='pixelation-level',
+                min=1, max=20, step=1, value=1,
+                marks={i: str(i) for i in range(1, 21)}
+            ),
+        ], width=6),  # Settings in the top-left corner
+
         dbc.Col([
-            html.H3("Original Image"),
-            html.Img(id='original-image', style={'width': '100%'}),
-            html.H3("Clustered Image"),
-            html.Img(id='clustered-image', style={'width': '100%'})
-        ], width=8)
-    ])
+            html.Div(id='output-image-upload'),
+        ], width=6),  # Upload component and input image in the top-right corner
+    ], style={'margin-top': '20px'}),
+
+    dbc.Row([
+        dbc.Col([
+            html.Div(id='color-section'),
+        ], width=6),  # Chosen colors on the left
+
+        dbc.Col([
+            html.Div(id='cluster-section'),
+        ], width=6),  # Clustered image on the right
+    ], style={'margin-top': '20px'})  # Row for color list and output image
 ])
 
-def parse_contents(contents, num_clusters):
-    # Decode the uploaded image
-    content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    image = Image.open(io.BytesIO(decoded))
 
+def pixelate_image(image, pixel_size):
+    width, height = image.size
+    # Calculate number of pixels in each direction to get average color
+    x_blocks = width // pixel_size
+    y_blocks = height // pixel_size
+    # Resize image to the number of pixels
+    pixelated = image.resize((x_blocks, y_blocks), Image.NEAREST)
+    # Scale up the image to the original size
+    pixelated = pixelated.resize((width, height), Image.NEAREST)
+    return pixelated
+
+
+def calculate_colors(image, num_clusters):
     # Convert image to numpy array
     img_array = np.array(image)
     h, w, _ = img_array.shape
@@ -63,29 +79,77 @@ def parse_contents(contents, num_clusters):
     clustered_img = clustered.reshape((h, w, 3)).astype('uint8')
     clustered_image_pil = Image.fromarray(clustered_img)
 
-    # Encode the original and clustered images to base64
-    buffered_original = io.BytesIO()
-    image.save(buffered_original, format="PNG")
-    original_base64 = base64.b64encode(buffered_original.getvalue()).decode('utf-8')
+    # Get unique colors and their counts
+    unique_colors, _ = np.unique(clustered, axis=0, return_counts=True)
 
-    buffered_clustered = io.BytesIO()
-    clustered_image_pil.save(buffered_clustered, format="PNG")
-    clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
+    return clustered_image_pil, unique_colors
 
-    return original_base64, clustered_base64
 
 @app.callback(
-    [Output('original-image', 'src'), Output('clustered-image', 'src')],
-    [Input('cluster-button', 'n_clicks')],
-    [State('upload-image', 'contents'), State('num-clusters', 'value')]
+    Output('output-image-upload', 'children'),
+    Input('upload-image', 'contents')
 )
-def update_output(n_clicks, contents, num_clusters):
-    if contents is not None:
-        original_base64, clustered_base64 = parse_contents(contents, num_clusters)
-        original_src = f'data:image/png;base64,{original_base64}'
-        clustered_src = f'data:image/png;base64,{clustered_base64}'
-        return original_src, clustered_src
+def display_uploaded_image(contents):
+    if contents:
+        uploaded_image = html.Img(src=contents, style={'width': '100%'})
+        return uploaded_image
+    return None
+
+
+@app.callback(
+    [Output('color-section', 'children'),
+     Output('cluster-section', 'children')],
+    [Input('num-clusters', 'value'),
+     Input('pixelation-level', 'value'),
+     Input('upload-image', 'contents')]
+)
+def update_clustering(num_clusters, pixelation_level, contents):
+    if contents:
+        # Decode the uploaded image
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        image = Image.open(io.BytesIO(decoded))
+
+        # Pixelate the image
+        pixelated_image = pixelate_image(image, pixelation_level)
+
+        # Calculate clustered image and color information
+        clustered_image, unique_colors = calculate_colors(pixelated_image, num_clusters)
+
+        # Encode the clustered image to base64
+        buffered_clustered = io.BytesIO()
+        clustered_image.save(buffered_clustered, format="PNG")
+        clustered_base64 = base64.b64encode(buffered_clustered.getvalue()).decode('utf-8')
+        clustered_image_html = html.Img(src=f'data:image/png;base64,{clustered_base64}', style={'width': '100%'})
+
+        # Prepare HTML for color list
+        color_list_items = []
+        for color in unique_colors:
+            # Convert color values from float64 to int and then to string
+            rgb_values = f"rgb{tuple(map(int, color))}"
+            # Create a div with the color square and RGB values
+            color_square = html.Div(style={
+                'width': '30px', 'height': '30px', 'background-color': f'rgb({int(color[0])}, {int(color[1])}, {int(color[2])})'
+            })
+            color_list_items.append(html.Div([
+                color_square,
+                html.Span(rgb_values, style={'margin-left': '10px'})
+            ], className='color-card'))
+
+        color_section = html.Div([
+            html.H3("Chosen Colors"),
+            html.Div(color_list_items, style={'display': 'flex', 'flex-wrap': 'wrap'})
+        ])
+
+        cluster_section = html.Div([
+            html.H3("Clustered Image"),
+            clustered_image_html
+        ])
+
+        return color_section, cluster_section
+
     return None, None
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

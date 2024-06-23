@@ -1,0 +1,48 @@
+#react-entry-point{
+    background-color: #232323;
+    color: white;
+    height: 100%;
+    min-height:100vh;
+}
+
+img {
+    border: 1px solid #9b9b9b;
+}
+
+/* Example styles.css */
+body {
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    padding: 20px;
+}
+
+.centered {
+    text-align: center;
+}
+
+.color-box{
+    border: 1px solid grey;
+}
+
+.color-card {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    width: 180px;
+}
+
+#upload-image{
+    text-align: center;
+    margin: 100px 0px 50px 0px;
+    width: 200px;
+    padding:10px;
+    background-color: #750db6;
+    border-radius: 7px;
+}
+
+#upload-image:hover{
+    cursor: pointer;
+    background-color: #9308c1;
+}
